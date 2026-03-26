@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisCount: 2,
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 0.68,
+                      childAspectRatio: 0.66,
                     ),
                     itemBuilder: (context, index) {
 
@@ -194,10 +194,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Text(
                                       p['name'],
                                       maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                          fontWeight:
-                                          FontWeight.w600),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
                                     ),
+
+                                    SizedBox(height: 4),
+
+                                    Text(
+                                      p['shortDescription'] ?? "",
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+
+                                    SizedBox(height: 6),
 
                                     SizedBox(height: 5),
 

@@ -35,9 +35,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   height: 400,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(25),
-                    image: DecorationImage(
-                      image: NetworkImage(widget.product['image']),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(25),
+                    child: Image.network(
+                      widget.product['image'],
                       fit: BoxFit.cover,
+                      width: double.infinity,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Center(child: CircularProgressIndicator());
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[200],
+                          child: Icon(Icons.image_not_supported, size: 50),
+                        );
+                      },
                     ),
                   ),
                 ),
