@@ -20,6 +20,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    int price = widget.product['price'] ?? 0;
+    int totalPrice = price * quantity;
     return Scaffold(
       backgroundColor: Color(0xFFF7F7F7),
 
@@ -134,7 +136,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                     // DESCRIPTION
                     Text(
-                      widget.product['description'],
+                      widget.product['longDescription'] ?? "No description available",
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -223,7 +225,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                       child: Center(
                         child: Text(
-                          "Add to Cart | ₹${widget.product['price']}",
+                          "Add to Cart | ₹$totalPrice",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
