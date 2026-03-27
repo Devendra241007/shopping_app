@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shopping_app/screens/productDetail_screen.dart';
+import 'package:shopping_app/screens/wishlist.dart';
 
 import '../services/api_services.dart';
 
@@ -10,6 +12,23 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String name = "";
+  String email = "";
+
+  @override
+  void initState() {
+    super.initState();
+    loadUser();
+  }
+
+  void loadUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      name = prefs.getString("name") ?? "User";
+      email = prefs.getString("email") ?? "No email";
+    });
+  }
 
   String selectedCategory = "All";
 
@@ -24,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context, snapshot) {
 
             if (!snapshot.hasData) {
-              return Center(child: CircularProgressIndicator());
+              return Center(child: CircularProgressIndicator(color: Color(0xFFFF6F61),));
             }
 
             List products = snapshot.data!;
@@ -52,16 +71,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text("Hello, Welcome 👋",
                               style: TextStyle(color: Colors.grey)),
                           SizedBox(height: 4),
-                          Text("Devendra",
+                          Text(name,
                               style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      CircleAvatar(
-                        radius: 22,
-                        backgroundImage: NetworkImage(
-                            "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200"),
+                      IconButton(
+                        icon: Icon(Icons.favorite_border, size: 26),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => WishlistScreen()),
+                          );
+                        },
                       )
                     ],
                   ),
@@ -127,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisCount: 2,
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 0.66,
+                      childAspectRatio: 0.60,
                     ),
                     itemBuilder: (context, index) {
 
@@ -168,19 +191,35 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
 
-                                  Positioned(
-                                    right: 10,
-                                    top: 10,
-                                    child: Container(
-                                      padding: EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(Icons.favorite_border,
-                                          size: 16),
-                                    ),
-                                  )
+                                  // Positioned(
+                                  //   right: 10,
+                                  //   top: 10,
+                                  //   child: Container(
+                                  //     padding: EdgeInsets.all(6),
+                                  //     decoration: BoxDecoration(
+                                  //       color: Colors.white,
+                                  //       shape: BoxShape.circle,
+                                  //     ),
+                                  //     child: GestureDetector(
+                                  //       onTap: () {
+                                  //         setState(() {
+                                  //           if (wishlist.contains(p)) {
+                                  //             wishlist.remove(p);
+                                  //           } else {
+                                  //             wishlist.add(p);
+                                  //           }
+                                  //         });
+                                  //       },
+                                  //       child: Icon(
+                                  //         wishlist.contains(p)
+                                  //             ? Icons.favorite
+                                  //             : Icons.favorite_border,
+                                  //         color: wishlist.contains(p) ? Colors.red : Colors.black,
+                                  //         size: 18,
+                                  //       ),
+                                  //     )
+                                  //   ),
+                                  // )
                                 ],
                               ),
 

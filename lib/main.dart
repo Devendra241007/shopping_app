@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/cart.dart';
 
 void main() {
   runApp(MyApp());
@@ -13,7 +17,39 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MainScreen(),
+      home: AuthCheck(), // 🔥 important
+    );
+  }
+}
+
+class AuthCheck extends StatelessWidget {
+
+  Future<bool> isLoggedIn() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString("token") != null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: isLoggedIn(),
+      builder: (context, snapshot) {
+
+        // 🔄 Loading
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator(color:Color(0xFFFF6F61))),
+          );
+        }
+
+        // ✅ Logged in
+        if (snapshot.data == true) {
+          return MainScreen();
+        }
+
+        // ❌ Not logged in
+        return LoginScreen();
+      },
     );
   }
 }
@@ -29,7 +65,7 @@ class _MainScreenState extends State<MainScreen> {
   final screens = [
     HomeScreen(),
     SearchScreen(),
-    CartScreen(),
+    CartScreen(cart: cart),
     ProfileScreen(),
   ];
 

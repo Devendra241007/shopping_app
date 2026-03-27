@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/api_services.dart';
+import 'cart.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final dynamic product;
@@ -10,13 +13,34 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-
   int quantity = 1;
   int selectedSize = 0;
   int selectedColor = 0;
+  bool isWishlisted = false;
 
   List sizes = ["S", "M", "L", "XL"];
   List colors = [Colors.grey, Colors.brown, Colors.black];
+  @override
+  void initState() {
+    super.initState();
+    checkWishlist();
+  }
+
+  void checkWishlist() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String userId = prefs.getString("userId") ?? "";
+
+    final data = await ApiService.getWishlist(userId);
+
+    if (!mounted) return; // ✅ ADD THIS
+
+    bool exists = data.any((item) =>
+    item['product']['name'] == widget.product['name']);
+
+    setState(() {
+      isWishlisted = exists;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,198 +49,234 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Scaffold(
       backgroundColor: Color(0xFFF7F7F7),
 
-      body: SafeArea(
-        child: Column(
-          children: [
-
-            // 🔥 IMAGE WITH BUTTONS
-            Stack(
-              children: [
-                Container(
-                  margin: EdgeInsets.all(16),
-                  height: 400,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25),
+      body: Column(
+        children: [
+          // 🔥 IMAGE WITH BUTTONS
+          Stack(
+            children: [
+              Container(
+                margin: EdgeInsets.all(16),
+                height: 400,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: Image.network(
+                    widget.product['image'],
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return Center(child: CircularProgressIndicator());
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[200],
+                        child: Icon(Icons.image_not_supported, size: 50),
+                      );
+                    },
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(25),
-                    child: Image.network(
-                      widget.product['image'],
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return Center(child: CircularProgressIndicator());
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[200],
-                          child: Icon(Icons.image_not_supported, size: 50),
-                        );
-                      },
+                ),
+              ),
+
+              // BACK BUTTON
+              Positioned(
+                top: 30,
+                left: 30,
+                child: circleIcon(Icons.arrow_back, () {
+                  Navigator.pop(context);
+                }),
+              ),
+
+              Positioned(
+                top: 30,
+                right: 30,
+                child: GestureDetector(
+                  onTap: () async {
+                    SharedPreferences prefs = await SharedPreferences.getInstance();
+                    String userId = prefs.getString("userId") ?? "";
+
+                    await ApiService.toggleWishlist(userId, widget.product);
+
+                    if (!mounted) return;
+                    checkWishlist(); //  re-fetch real state from server
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isWishlisted ? "Removed from Wishlist" : "Added to Wishlist")),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isWishlisted ? Icons.favorite : Icons.favorite_border,
+                      color: isWishlisted ? Colors.red : Colors.black,
                     ),
                   ),
                 ),
+              ),
+            ],
+          ),
 
-                // BACK BUTTON
-                Positioned(
-                  top: 30,
-                  left: 30,
-                  child: circleIcon(Icons.arrow_back, () {
-                    Navigator.pop(context);
-                  }),
-                ),
+          // 🔥 DETAILS
+          Expanded(
+          child: SingleChildScrollView(
+          child: Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // NAME + QUANTITY
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.product['name'],
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
 
-                // WISHLIST
-                Positioned(
-                  top: 30,
-                  right: 30,
-                  child: circleIcon(Icons.favorite_border, () {}),
-                ),
-              ],
-            ),
+                      Row(
+                        children: [
+                          qtyButton(Icons.remove, () {
+                            if (quantity > 1) {
+                              setState(() => quantity--);
+                            }
+                          }),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10),
+                            child: Text("$quantity"),
+                          ),
+                          qtyButton(Icons.add, () {
+                            setState(() => quantity++);
+                          }),
+                        ],
+                      ),
+                    ],
+                  ),
 
-            // 🔥 DETAILS
-            Expanded(
-              child: Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  SizedBox(height: 10),
 
-                    // NAME + QUANTITY
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
+                  // ⭐ RATING
+                  Row(
+                    children: [
+                      Icon(Icons.star, color: Colors.orange, size: 18),
+                      SizedBox(width: 5),
+                      Text("5.0 (732 reviews)"),
+                    ],
+                  ),
+
+                  SizedBox(height: 10),
+
+                  // DESCRIPTION
+                  Text(
+                    widget.product['longDescription'] ??
+                        "No description available",
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  SizedBox(height: 10),
+
+                  Text(
+                    "Read More...",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+
+                  SizedBox(height: 20),
+
+                  // SIZE
+                  Text(
+                    "Choose Size",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+
+                  Row(
+                    children: List.generate(sizes.length, (index) {
+                      bool selected = selectedSize == index;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => selectedSize = index);
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(right: 10),
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: selected ? Colors.black : Colors.grey[200],
+                            shape: BoxShape.circle,
+                          ),
                           child: Text(
-                            widget.product['name'],
+                            sizes[index],
                             style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                              color: selected ? Colors.white : Colors.black,
                             ),
                           ),
                         ),
+                      );
+                    }),
+                  ),
 
-                        Row(
-                          children: [
-                            qtyButton(Icons.remove, () {
-                              if (quantity > 1) {
-                                setState(() => quantity--);
-                              }
-                            }),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10),
-                              child: Text("$quantity"),
-                            ),
-                            qtyButton(Icons.add, () {
-                              setState(() => quantity++);
-                            }),
-                          ],
-                        )
-                      ],
-                    ),
+                  SizedBox(height: 20),
 
-                    SizedBox(height: 10),
+                  // COLOR
+                  Text(
+                    "Color",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
 
-                    // ⭐ RATING
-                    Row(
-                      children: [
-                        Icon(Icons.star, color: Colors.orange, size: 18),
-                        SizedBox(width: 5),
-                        Text("5.0 (732 reviews)"),
-                      ],
-                    ),
+                  Row(
+                    children: List.generate(colors.length, (index) {
+                      bool selected = selectedColor == index;
 
-                    SizedBox(height: 10),
-
-                    // DESCRIPTION
-                    Text(
-                      widget.product['longDescription'] ?? "No description available",
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    SizedBox(height: 10),
-
-                    Text(
-                      "Read More...",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-
-                    SizedBox(height: 20),
-
-                    // SIZE
-                    Text("Choose Size", style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 10),
-
-                    Row(
-                      children: List.generate(sizes.length, (index) {
-                        bool selected = selectedSize == index;
-
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() => selectedSize = index);
-                          },
-                          child: Container(
-                            margin: EdgeInsets.only(right: 10),
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: selected ? Colors.black : Colors.grey[200],
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              sizes[index],
-                              style: TextStyle(
-                                color: selected ? Colors.white : Colors.black,
-                              ),
-                            ),
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => selectedColor = index);
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(right: 10),
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: colors[index],
+                            shape: BoxShape.circle,
+                            border: selected
+                                ? Border.all(color: Colors.black, width: 2)
+                                : null,
                           ),
-                        );
-                      }),
-                    ),
+                        ),
+                      );
+                    }),
+                  ),
 
-                    SizedBox(height: 20),
+                  SizedBox(height: 20),
 
-                    // COLOR
-                    Text("Color", style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 10),
-
-                    Row(
-                      children: List.generate(colors.length, (index) {
-                        bool selected = selectedColor == index;
-
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() => selectedColor = index);
-                          },
-                          child: Container(
-                            margin: EdgeInsets.only(right: 10),
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: colors[index],
-                              shape: BoxShape.circle,
-                              border: selected
-                                  ? Border.all(color: Colors.black, width: 2)
-                                  : null,
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-
-                    Spacer(),
-
-                    // 🔥 ADD TO CART BUTTON
-                    Container(
+                  // 🔥 ADD TO CART BUTTON
+                  GestureDetector(
+                    onTap: () {
+                      cart.add(widget.product);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Added to cart")),
+                      );
+                    },
+                    child: Container(
                       width: double.infinity,
                       height: 55,
                       decoration: BoxDecoration(
@@ -232,13 +292,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                       ),
-                    )
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
-            )
-          ],
-        ),
+            ),
+          ),
+          )
+        ],
       ),
     );
   }
@@ -248,10 +309,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
         child: Icon(icon),
       ),
     );
